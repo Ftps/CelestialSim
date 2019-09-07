@@ -1,5 +1,5 @@
 TARGET = exe
-LIBS = -lm -lSDL2
+LIBS = -lm -lglut -lGLEW -lGL -lSDL2
 CC = g++
 CFLAGS = -Wall -pedantic -ggdb3 -o3
 

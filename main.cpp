@@ -1,28 +1,25 @@
-#include "SDL/SDL.h"
+#include "celest.hpp"
 
 int main(int argc, char *argv[])
 {
-    bool quit = false;
-    SDL_Event event;
-    SDL_Window* screen;
+    Simulator sim;
+    Body b = {10000000000, 0.1, {{-5, 0, 0}}, {{0, 0.215219526169, 0}}}, c = {50000000000, 0.2, {{1, 0, 0}}, {{0, -0.043043905, 0}}};
 
-    SDL_Init(SDL_INIT_EVERYTHING);
+    LOG
 
-    screen = SDL_CreateWindow("My SDL Empty Window", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, 0);
+    sim.add_body(b);
+    sim.add_body(c);
+    sim.init_sim();
 
-    while (!quit)
-    {
-        SDL_WaitEvent(&event);
+    LOG
 
-        switch (event.type)
-        {
-            case SDL_QUIT:
-                quit = true;
-                break;
-        }
+    for(int i = 0; i < sim.bod[0].pos.size(); ++i){
+        std::cout << "B:";
+        sim.bod[0].pos[i].print_coord();
+        std::cout << "    C:";
+        sim.bod[1].pos[i].print_coord();
+        std::cout << std::endl;
     }
-
-    SDL_Quit();
 
     return 0;
 }
