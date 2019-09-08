@@ -40,24 +40,25 @@ struct Definition {
 };
 
 class Simulator {
-public:
     std::vector<Body> bod;
     std::vector<Ship> ship;
     Definition d;
     long double t;
 
-    std::vector<Vector3> k1, k2, k3, k4;
-    Vector3 r_ij, aux;
+    std::vector<Vector3> k1, k2, k3, k4; // Runge-Kutta variables
+    Vector3 r_ij, aux; // auxiliar vectors
 
     void init_sim();
     void runge_kutta_bod();
     void runge_kutta_ship();
-
-
-    Simulator();
-    Simulator(Definition de);
+    void preview_ship(ULI);
     void add_body(Body);
     void add_ship(Ship);
+    void change_speed(Vector3, ULI);
+
+public:
+    Simulator();
+    Simulator(Definition de);
     void main_cycle();
 };
 

@@ -64,6 +64,17 @@ void Simulator::runge_kutta_bod()
     }
 
     for(ULI i = 0; i < bod.size(); ++i){
+        aux.null();
+        for(ULI j = 0; j < bod.size(); ++j){
+            if(i == j) continue;
+            r_ij = bod[i].pos.back().sub_to_vec(bod[j].pos.back());
+            aux.add_to_self(r_ij.scalar(d.G*bod[j].mass/pow(r_ij.modulus(), 3)));
+        }
+        bod[i].vel.push_back(bod[i].vel.back().add_to_vec(aux.scalar(d.dt)));
+        bod[i].pos.push_back(bod[i].pos.back().add_to_vec(bod[i].vel.back().scalar(d.dt)));
+    }
+
+    /* for(ULI i = 0; i < bod.size(); ++i){
         k1[i].null();
         k2[i].null();
         k3[i].null();
@@ -81,7 +92,7 @@ void Simulator::runge_kutta_bod()
     for(ULI i = 0; i < bod.size(); ++i){ // k2 for runge-kutta
         for(ULI j = 0; j < bod.size(); ++j){
             if(i == j) continue;
-            aux = bod[i].pos.back().add_to_vec(k1[i].scalar(0.5));
+            aux = bod[i].pos.back().add_to_vec(bod[i].vel.back().add_to_vec(k1[i].scalar(0.5)));
             r_ij = aux.sub_to_vec(bod[j].pos.back().add_to_vec(k1[j].scalar(0.5)));
             k2[i].add_to_self(r_ij.scalar(d.G*d.dt*bod[j].mass/pow(r_ij.modulus(), 3)));
         }
@@ -90,7 +101,7 @@ void Simulator::runge_kutta_bod()
     for(ULI i = 0; i < bod.size(); ++i){ // k3 for runge-kutta
         for(ULI j = 0; j < bod.size(); ++j){
             if(i == j) continue;
-            aux = bod[i].pos.back().add_to_vec(k2[i].scalar(0.5));
+            aux = bod[i].pos.back().add_to_vec(bod[i].vel.back().add_to_vec(k2[i].scalar(0.5)));
             r_ij = aux.sub_to_vec(bod[j].pos.back().add_to_vec(k2[j].scalar(0.5)));
             k3[i].add_to_self(r_ij.scalar(d.G*d.dt*bod[j].mass/pow(r_ij.modulus(), 3)));
         }
@@ -99,7 +110,7 @@ void Simulator::runge_kutta_bod()
     for(ULI i = 0; i < bod.size(); ++i){ // k4 for runge-kutta
         for(ULI j = 0; j < bod.size(); ++j){
             if(i == j) continue;
-            aux = bod[i].pos.back().add_to_vec(k3[i]);
+            aux = bod[i].pos.back().add_to_vec(bod[i].vel.back().add_to_vec(k3[i]));
             r_ij = aux.sub_to_vec(bod[j].pos.back().add_to_vec(k3[j]));
             k4[i].add_to_self(r_ij.scalar(d.G*d.dt*bod[j].mass/pow(r_ij.modulus(), 3)));
         }
@@ -115,20 +126,76 @@ void Simulator::runge_kutta_bod()
         bod[i].pos.push_back(bod[i].pos.back().add_to_vec(bod[i].vel.back().scalar(d.dt)));
     }
 
-    aux.scalar(1.0/6.0).print_coord();
-    LOG
-    bod[0].vel.back().print_coord();
-    LOG
+    */
+}
+
+void Simulator::runge_kutta_ship()
+{
+    if(ship[0].pos.size() == ship[0].pos.capacity()){
+        for(ULI i = 0; i < bod.size(); ++i){
+            ship[i].pos.erase(ship[i].pos.begin());
+            ship[i].vel.erase(ship[i].vel.begin());
+        }
+    }
+
+    for(ULI i = 0; i < bod.size(); ++i){
+        aux.null();
+        for(ULI j = 0; j < bod.size(); ++j){
+            r_ij = ship[i].pos.back().sub_to_vec(bod[j].pos.back());
+            aux.add_to_self(r_ij.scalar(d.G*bod[j].mass/pow(r_ij.modulus(), 3)));
+        }
+        ship[i].vel.push_back(ship[i].vel.back().add_to_vec(aux.scalar(d.dt)));
+        ship[i].pos.push_back(ship[i].pos.back().add_to_vec(ship[i].vel.back().scalar(d.dt)));
+    }
+}
+
+void Simulator::preview_ship(ULI a)
+{
+    aux.null();
+    for(ULI a = 0; a < d.ahead-1; ++a){
+        for(ULI i = 0; i < bod.size(); ++i){
+            r_ij = ship[a].pos.back().sub_to_vec(bod[i].pos[a]);
+            aux.add_to_self(r_ij.scalar(d.G*bod[i].mass/pow(r_ij.modulus(), 3)));
+        }
+        ship[a].vel.push_back(ship[a].vel.back().add_to_vec(aux.scalar(d.dt)));
+        ship[a].pos.push_back(ship[a].pos.back().add_to_vec(ship[a].vel.back().scalar(d.dt)));
+    }
 }
 
 void Simulator::add_body(Body b)
 {
+    b.pos.reserve(d.ahead);
+    b.vel.reserve(d.ahead);
+    aux.null();
+
+    for(ULI a; a < d.ahead-1; ++a){
+        for(ULI i = 0; i < bod.size(); ++i){
+            r_ij = b.pos.back().sub_to_vec(bod[i].pos[a]);
+            aux.add_to_self(r_ij.scalar(d.G*bod[i].mass/pow(r_ij.modulus(), 3)));
+        }
+        b.vel.push_back(b.vel.back().add_to_vec(aux.scalar(d.dt)));
+        b.pos.push_back(b.pos.back().add_to_vec(b.vel.back().scalar(d.dt)));
+    }
+
     bod.push_back(b);
 }
 
 void Simulator::add_ship(Ship s)
 {
     ship.push_back(s);
+    preview_ship(ship.size()-1);
+}
+
+void Simulator::change_speed(Vector3 dv, ULI i)
+{
+    aux = ship[i].pos[0];
+    ship[i].pos.clear();
+    ship[i].pos.push_back(aux);
+    aux = ship[i].vel[0];
+    ship[i].vel.clear();
+    ship[i].vel.push_back(aux.add_to_vec(dv));
+
+    preview_ship(i);
 }
 
 void Simulator::main_cycle()
@@ -139,6 +206,19 @@ void Simulator::main_cycle()
 
     init_sim();
 
+    do{
+        /*
+        Render image on screen
+        */
+
+        /*
+        Proccess events
+        */
+
+        runge_kutta_bod();
+        runge_kutta_ship();
+
+    }while(true);
 
     return;
 }
